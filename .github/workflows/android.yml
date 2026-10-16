@@ -1,4 +1,4 @@
-name: Build Attack On Titan Android
+name: Build Attack On Titan APK
 
 on:
   workflow_dispatch:
@@ -11,31 +11,29 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Download Project
+        uses: actions/checkout@v5
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
+      - name: Install Java 17
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Android SDK
+      - name: Install Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android SDK packages
+      - name: Install Android Components
         run: |
-          yes | sdkmanager --licenses
-          sdkmanager \
+          sdkmanager --install \
             "platform-tools" \
             "platforms;android-34" \
             "build-tools;34.0.0" \
-            "cmdline-tools;latest" \
-            "cmake;3.10.2.4988404" \
-            "ndk;23.2.8568313"
+            "cmdline-tools;latest"
+          yes | sdkmanager --licenses
 
       - name: Download Godot 4.3
         run: |
@@ -44,14 +42,14 @@ jobs:
           chmod +x Godot_v4.3-stable_linux.x86_64
           sudo mv Godot_v4.3-stable_linux.x86_64 /usr/local/bin/godot
 
-      - name: Install Godot Android export templates
+      - name: Install Export Templates
         run: |
           wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
           mkdir -p ~/.local/share/godot/export_templates/4.3.stable
           unzip -q Godot_v4.3-stable_export_templates.tpz -d /tmp/godot-templates
           cp -r /tmp/godot-templates/templates/* ~/.local/share/godot/export_templates/4.3.stable/
 
-      - name: Configure Godot Android paths
+      - name: Configure Android Export
         run: |
           mkdir -p ~/.config/godot
           cat > ~/.config/godot/editor_settings-4.tres <<EOF
@@ -62,11 +60,11 @@ jobs:
           export/android/java_sdk_path = "$JAVA_HOME"
           EOF
 
-      - name: Import and validate project
+      - name: Validate Game Project
         run: |
           godot --headless --editor --path . --quit
 
-      - name: Build Android APK
+      - name: Export Android APK
         run: |
           mkdir -p build
           godot --headless --path . --export-debug "Android" build/AttackOnTitan.apk
