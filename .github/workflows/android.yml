@@ -14,45 +14,56 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Download Project
+      - name: Checkout Project
         uses: actions/checkout@v5
 
-      - name: Install Java 17
+      - name: Install Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
 
       - name: Install Android SDK
-        uses: android-actions/setup-android@v3
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget unzip
+          mkdir -p "$HOME/android-sdk/cmdline-tools"
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/android-tools.zip
+          mkdir -p /tmp/android-tools
+          unzip -q /tmp/android-tools.zip -d /tmp/android-tools
+          mkdir -p "$HOME/android-sdk/cmdline-tools/latest"
+          mv /tmp/android-tools/cmdline-tools/* "$HOME/android-sdk/cmdline-tools/latest/"
+          echo "ANDROID_HOME=$HOME/android-sdk" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> "$GITHUB_ENV"
+          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$HOME/android-sdk/platform-tools" >> "$GITHUB_PATH"
 
       - name: Install Android Components
         run: |
-          sdkmanager --install \
+          yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses
+          sdkmanager --sdk_root="$ANDROID_HOME" \
             "platform-tools" \
             "platforms;android-34" \
-            "build-tools;34.0.0" \
-            "cmdline-tools;latest"
-          yes | sdkmanager --licenses
+            "build-tools;34.0.0"
 
-      - name: Download Godot 4.3
+      - name: Download Godot
         run: |
           wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
           unzip -q Godot_v4.3-stable_linux.x86_64.zip
           chmod +x Godot_v4.3-stable_linux.x86_64
           sudo mv Godot_v4.3-stable_linux.x86_64 /usr/local/bin/godot
 
-      - name: Install Export Templates
+      - name: Install Godot Export Templates
         run: |
           wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
-          mkdir -p ~/.local/share/godot/export_templates/4.3.stable
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.3.stable"
           unzip -q Godot_v4.3-stable_export_templates.tpz -d /tmp/godot-templates
-          cp -r /tmp/godot-templates/templates/* ~/.local/share/godot/export_templates/4.3.stable/
+          cp -r /tmp/godot-templates/templates/* "$HOME/.local/share/godot/export_templates/4.3.stable/"
 
-      - name: Configure Android Export
+      - name: Configure Godot
         run: |
-          mkdir -p ~/.config/godot
-          cat > ~/.config/godot/editor_settings-4.tres <<EOF
+          mkdir -p "$HOME/.config/godot"
+          cat > "$HOME/.config/godot/editor_settings-4.tres" <<EOF
           [gd_resource type="EditorSettings" format=3]
 
           [resource]
@@ -60,11 +71,10 @@ jobs:
           export/android/java_sdk_path = "$JAVA_HOME"
           EOF
 
-      - name: Validate Game Project
-        run: |
-          godot --headless --editor --path . --quit
+      - name: Validate Project
+        run: godot --headless --editor --path . --quit
 
-      - name: Export Android APK
+      - name: Export APK
         run: |
           mkdir -p build
           godot --headless --path . --export-debug "Android" build/AttackOnTitan.apk
