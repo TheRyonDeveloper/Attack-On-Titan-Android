@@ -17,7 +17,7 @@ jobs:
       - name: Checkout Project
         uses: actions/checkout@v5
 
-      - name: Install Java
+      - name: Install Java 17
         uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -29,7 +29,6 @@ jobs:
           sudo apt-get install -y wget unzip
           mkdir -p "$HOME/android-sdk/cmdline-tools"
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/android-tools.zip
-          mkdir -p /tmp/android-tools
           unzip -q /tmp/android-tools.zip -d /tmp/android-tools
           mkdir -p "$HOME/android-sdk/cmdline-tools/latest"
           mv /tmp/android-tools/cmdline-tools/* "$HOME/android-sdk/cmdline-tools/latest/"
@@ -46,21 +45,21 @@ jobs:
             "platforms;android-34" \
             "build-tools;34.0.0"
 
-      - name: Download Godot
+      - name: Download Godot 4.3
         run: |
           wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
           unzip -q Godot_v4.3-stable_linux.x86_64.zip
           chmod +x Godot_v4.3-stable_linux.x86_64
           sudo mv Godot_v4.3-stable_linux.x86_64 /usr/local/bin/godot
 
-      - name: Install Godot Export Templates
+      - name: Install Godot Android Templates
         run: |
           wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
           mkdir -p "$HOME/.local/share/godot/export_templates/4.3.stable"
           unzip -q Godot_v4.3-stable_export_templates.tpz -d /tmp/godot-templates
           cp -r /tmp/godot-templates/templates/* "$HOME/.local/share/godot/export_templates/4.3.stable/"
 
-      - name: Configure Godot
+      - name: Configure Godot Android Paths
         run: |
           mkdir -p "$HOME/.config/godot"
           cat > "$HOME/.config/godot/editor_settings-4.tres" <<EOF
@@ -71,17 +70,42 @@ jobs:
           export/android/java_sdk_path = "$JAVA_HOME"
           EOF
 
-      - name: Validate Project
-        run: godot --headless --editor --path . --quit
+      - name: Validate Godot Project
+        run: |
+          godot --headless --editor --path . --quit
+
+      - name: Check Android Export Preset
+        run: |
+          test -f export_presets.cfg
+          grep -q 'name="Android"' export_presets.cfg
+          echo "Android export preset found."
 
       - name: Export APK
+        id: export
+        continue-on-error: true
         run: |
           mkdir -p build
-          godot --headless --path . --export-debug "Android" build/AttackOnTitan.apk
+          godot --headless --verbose --path . --export-debug "Android" build/AttackOnTitan.apk 2>&1 | tee export-log.txt
+          test -f build/AttackOnTitan.apk
+
+      - name: Upload Export Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Godot-Export-Log
+          path: export-log.txt
+          if-no-files-found: ignore
 
       - name: Upload APK
+        if: steps.export.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: Attack-On-Titan-APK
           path: build/AttackOnTitan.apk
           if-no-files-found: error
+
+      - name: Fail if APK Export Failed
+        if: steps.export.outcome != 'success'
+        run: |
+          echo "APK export failed. Download the Godot-Export-Log artifact for details."
+          exit 1
