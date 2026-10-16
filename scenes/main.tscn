@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 
@@ -9,8 +9,15 @@ ambient_light_source = 3
 ambient_light_color = Color(0.8, 0.85, 1, 1)
 ambient_light_energy = 0.7
 
-[sub_resource type="BoxMesh" id="BoxMesh_ground"]
+[sub_resource type="BoxMesh" id="GroundMesh"]
 size = Vector3(100, 1, 100)
+
+[sub_resource type="BoxShape3D" id="GroundShape"]
+size = Vector3(100, 1, 100)
+
+[sub_resource type="CapsuleMesh" id="PlayerMesh"]
+radius = 0.4
+height = 1.8
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1")
@@ -22,23 +29,26 @@ environment = SubResource("Environment_main")
 
 [node name="GroundMesh" type="MeshInstance3D" parent="Ground"]
 position = Vector3(0, -0.5, 0)
-mesh = SubResource("BoxMesh_ground")
+mesh = SubResource("GroundMesh")
 
 [node name="GroundCollision" type="CollisionShape3D" parent="Ground"]
 position = Vector3(0, -0.5, 0)
-shape = SubResource("BoxMesh_ground")
+shape = SubResource("GroundShape")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+[node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-50, -30, 0)
 shadow_enabled = true
 
 [node name="Player" type="CharacterBody3D" parent="."]
-position = Vector3(0, 2, 0)
+position = Vector3(0, 1, 0)
 
-[node name="PlayerMesh" type="MeshInstance3D" parent="Player"]
-mesh = SubResource("BoxMesh_ground")
+[node name="PlayerCollision" type="CollisionShape3D" parent="Player"]
+shape = SubResource("GroundShape")
 
-[node name="Camera3D" type="Camera3D" parent="Player"]
-position = Vector3(0, 3, 7)
-rotation_degrees = Vector3(-15, 0, 0)
+[node name="PlayerVisual" type="MeshInstance3D" parent="Player"]
+mesh = SubResource("PlayerMesh")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(0, 5, 10)
+rotation_degrees = Vector3(-20, 0, 0)
 current = true
