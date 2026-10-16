@@ -1,0 +1,46 @@
+[gd_scene format=3]
+
+[node name="HUD" type="CanvasLayer"]
+
+[node name="Controls" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="Controls"]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 350.0
+offset_bottom = 55.0
+text = "ATTACK ON TITAN"
+
+[node name="Instructions" type="Label" parent="Controls"]
+offset_left = 20.0
+offset_top = 55.0
+offset_right = 450.0
+offset_bottom = 90.0
+text = "ODM GEAR: COMING SOON"
+
+[node name="AttackButton" type="Button" parent="Controls"]
+offset_left = 240.0
+offset_top = 480.0
+offset_right = 350.0
+offset_bottom = 540.0
+text = "ATTACK"
+
+[node name="JumpButton" type="Button" parent="Controls"]
+offset_left = 370.0
+offset_top = 480.0
+offset_right = 480.0
+offset_bottom = 540.0
+text = "JUMP"
+
+[node name="ODMButton" type="Button" parent="Controls"]
+offset_left = 500.0
+offset_top = 480.0
+offset_right = 610.0
+offset_bottom = 540.0
+text = "ODM"
