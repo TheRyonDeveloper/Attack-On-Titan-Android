@@ -2,6 +2,9 @@ name: Build Attack On Titan Android
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -14,28 +17,63 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Godot
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;34.0.0" \
+            "cmdline-tools;latest" \
+            "cmake;3.10.2.4988404" \
+            "ndk;23.2.8568313"
+
+      - name: Download Godot 4.3
         run: |
           wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
           unzip -q Godot_v4.3-stable_linux.x86_64.zip
           chmod +x Godot_v4.3-stable_linux.x86_64
           sudo mv Godot_v4.3-stable_linux.x86_64 /usr/local/bin/godot
 
-      - name: Download Android export templates
+      - name: Install Godot Android export templates
         run: |
           wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
           mkdir -p ~/.local/share/godot/export_templates/4.3.stable
           unzip -q Godot_v4.3-stable_export_templates.tpz -d /tmp/godot-templates
           cp -r /tmp/godot-templates/templates/* ~/.local/share/godot/export_templates/4.3.stable/
 
-      - name: Validate project
+      - name: Configure Godot Android paths
         run: |
-          godot --headless --path . --editor --quit
+          mkdir -p ~/.config/godot
+          cat > ~/.config/godot/editor_settings-4.tres <<EOF
+          [gd_resource type="EditorSettings" format=3]
 
-      - name: Upload validation log
-        if: always()
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          EOF
+
+      - name: Import and validate project
+        run: |
+          godot --headless --editor --path . --quit
+
+      - name: Build Android APK
+        run: |
+          mkdir -p build
+          godot --headless --path . --export-debug "Android" build/AttackOnTitan.apk
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: validation-log
-          path: .godot/
-          if-no-files-found: ignore
+          name: Attack-On-Titan-APK
+          path: build/AttackOnTitan.apk
+          if-no-files-found: error
